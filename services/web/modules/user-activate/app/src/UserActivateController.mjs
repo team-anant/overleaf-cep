@@ -1,8 +1,10 @@
 import Path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import UserGetter from '../../../../app/src/Features/User/UserGetter.mjs'
+import UserDeleter from '../../../../app/src/Features/User/UserDeleter.mjs'
 import UserRegistrationHandler from '../../../../app/src/Features/User/UserRegistrationHandler.mjs'
 import ErrorController from '../../../../app/src/Features/Errors/ErrorController.mjs'
+import SessionManager from '../../../../app/src/Features/Authentication/SessionManager.mjs'
 import { expressify } from '@overleaf/promise-utils'
 
 const __dirname = Path.dirname(fileURLToPath(import.meta.url))
@@ -62,8 +64,43 @@ async function activateAccountPage(req, res, next) {
   })
 }
 
+async function getUsers(req, res) {
+  const users = await UserGetter.promises.getUsers(
+    {},
+    { _id: 1, email: 1, first_name: 1, last_name: 1, isAdmin: 1, signUpDate: 1, lastLoggedIn: 1 }
+  )
+  res.json({
+    users: users.map(u => ({
+      id: u._id.toString(),
+      email: u.email,
+      firstName: u.first_name || '',
+      lastName: u.last_name || '',
+      isAdmin: u.isAdmin || false,
+      signUpDate: u.signUpDate,
+      lastLoggedIn: u.lastLoggedIn,
+    })),
+  })
+}
+
+async function deleteUser(req, res) {
+  const { userId } = req.params
+  const deleterUserId = SessionManager.getLoggedInUserId(req.session)
+  try {
+    await UserDeleter.promises.deleteUser(userId, {
+      deleterUser: { _id: deleterUserId },
+      ipAddress: req.ip,
+      skipEmail: true,
+    })
+    res.sendStatus(200)
+  } catch (err) {
+    res.status(422).json({ message: err.message || 'Failed to delete user' })
+  }
+}
+
 export default {
   registerNewUser,
   register: expressify(register),
   activateAccountPage: expressify(activateAccountPage),
+  getUsers: expressify(getUsers),
+  deleteUser: expressify(deleteUser),
 }

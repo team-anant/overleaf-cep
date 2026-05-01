@@ -26,5 +26,15 @@ export default {
       AuthorizationMiddleware.ensureUserIsSiteAdmin,
       UserActivateController.register
     )
+    webRouter.get(
+      '/admin/register/users',
+      AuthorizationMiddleware.ensureUserIsSiteAdmin,
+      UserActivateController.getUsers
+    )
+    webRouter.delete(
+      '/admin/register/user/:userId',
+      AuthorizationMiddleware.ensureUserIsSiteAdmin,
+      UserActivateController.deleteUser
+    )
   },
 }
