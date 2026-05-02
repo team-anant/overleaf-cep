@@ -86,6 +86,12 @@ RUN chmod +x /overleaf/bin/force-history-resyncs
 # -----------------------
 COPY server-ce/config/latexmkrc /usr/local/share/latexmk/LatexMk
 
+# Install full TeX Live scheme and update all packages
+# -----------------------------------------------------
+RUN tlmgr update --self \
+ && tlmgr install scheme-full \
+ && tlmgr update --all
+
 # File that controls open|closed status of the site
 # -------------------------------------------------
 ENV SITE_MAINTENANCE_FILE="/etc/overleaf/site_status"

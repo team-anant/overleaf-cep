@@ -1,88 +1,124 @@
-<h1 align="center">
-  <br>
-  <a href="https://www.overleaf.com"><img src="doc/logo.png" alt="Overleaf" width="300"></a>
-</h1>
+# Team Anant Overleaf
 
-<h4 align="center">An open-source online real-time collaborative LaTeX editor.</h4>
+A self-hosted collaborative LaTeX editor for Team Anant, based on [overleaf-cep](https://github.com/yu-i-i/overleaf-cep) (Overleaf Community Edition with extended features).
 
-<p align="center">
-  <a href="https://github.com/yu-i-i/overleaf-cep/wiki">Wiki</a> •
-  <a href="https://www.overleaf.com/for/enterprises">Server Pro</a> •
-  <a href="#authors">Authors</a> •
-  <a href="#license">License</a>
-</p>
+**Live instance:** https://overleaf.team-anant.com
 
-<img src="doc/screenshot.png" alt="A screenshot of a project being edited in Overleaf Extended Community Edition">
-<p align="center">
-  Figure 1: A screenshot of a project being edited in Overleaf Extended Community Edition.
-</p>
+---
 
-## Community Edition
+## What's different from upstream
 
-[Overleaf](https://www.overleaf.com) is an open-source online real-time collaborative LaTeX editor. Overleaf runs a hosted version at [www.overleaf.com](https://www.overleaf.com), but you can also run your own local version, and contribute to the development of Overleaf.
+### Admin — Manage Users (`/admin/register`)
 
-## Extended Community Edition (CE+)
+The register page has been enhanced beyond the default "register only" form:
 
-The present "extended" version of Overleaf CE includes:
+- **User table** — lists all existing users with email, first/last name, admin status, sign-up date, and last login
+- **Delete user** — each row has a delete button (soft-delete with confirmation prompt); the table refreshes automatically after deletion
+- **Register new users** — original bulk-email registration form retained above the table
 
-- Template gallery
-- Sandboxed compiles with TeX Live image selection
-- LDAP authentication
-- SAML authentication
-- OpenID Connect authentication
-- Real-time track changes and comments
-- Autocomplete of reference keys
-- Symbol palette
-- Import file from external URL
-- Advanced administrator tools for managing user accounts and projects
-- Git integration
+Relevant files:
+- `services/web/modules/user-activate/app/src/UserActivateController.mjs` — added `getUsers` and `deleteUser` handlers
+- `services/web/modules/user-activate/app/src/UserActivateRouter.mjs` — added `GET /admin/register/users` and `DELETE /admin/register/user/:userId`
+- `services/web/modules/user-activate/frontend/js/components/user-activate-register.jsx` — added users table component
 
-> [!CAUTION]
-> Overleaf Community Edition is intended for use in environments where **all** users are trusted. Community Edition is **not** appropriate for scenarios where isolation of users is required due to Sandbox Compiles not being available. When not using Sandboxed Compiles, users have full read and write access to the `sharelatex` container resources (filesystem, network, environment variables) when running LaTeX compiles. 
-Therefore, in any environment where not all users can be fully trusted, it is strongly recommended to enable the Sandboxed Compiles feature available in the Extended Community Edition.
+### TeX Live
 
-For more information on Sandbox Compiles check out Overleaf [documentation](https://docs.overleaf.com/on-premises/configuration/overleaf-toolkit/server-pro-only-configuration/sandboxed-compiles).
+The community image installs `scheme-full` (complete TeX Live) and updates all packages at build time, so every LaTeX package on CTAN is available to all users out of the box.
 
-## Enterprise
+---
 
-If you want help installing and maintaining Overleaf in your lab or workplace, Overleaf offers an officially supported version called [Overleaf Server Pro](https://www.overleaf.com/for/enterprises).
+## Server
 
-## Installation
+| | |
+|---|---|
+| **Host** | `23.95.182.35` |
+| **OS** | Ubuntu 24.04 |
+| **Disk** | 62 GB (41 GB free) |
+| **Deployment** | Docker Compose |
 
-Detailed installation instructions can be found in the [Overleaf Toolkit](https://github.com/overleaf/toolkit/).
-Configuration details and release history for the Extended Community Edition can be found on the [Extended CE Wiki Page](https://github.com/yu-i-i/overleaf-cep/wiki).
+### Key paths
 
-## Overleaf Docker Image
+| Path | Purpose |
+|---|---|
+| `/opt/overleaf` | Source repo (this repo, branch `ext-ce`) |
+| `/opt/overleaf-data` | Persistent data volume (MongoDB, Redis, uploads) |
+| `/opt/overleaf/docker-compose.override.yml` | Site-specific env vars (URL, SMTP, etc.) |
+| `/tmp/overleaf-build.log` | Output of the last image build |
 
-This repo contains two dockerfiles, [`Dockerfile-base`](server-ce/Dockerfile-base), which builds the
-`sharelatex/sharelatex-base:ext-ce` image, and [`Dockerfile`](server-ce/Dockerfile) which builds the
-`sharelatex/sharelatex:ext-ce` image.
+---
 
-The Base image generally contains the basic dependencies like `wget`, plus `texlive`.
-This is split out because it's a pretty heavy set of
-dependencies, and it's nice to not have to rebuild all of that every time.
+## Deploying changes
 
-The `sharelatex/sharelatex` image extends the base image and adds the actual Overleaf code
-and services.
+### 1. Make and commit changes locally
 
-Use `make build-base` and `make build-community` from `server-ce/` to build these images.
+```bash
+# edit files...
+git add <files>
+git commit -m "your message"
+git push fork ext-ce
+```
 
-The [Phusion base-image](https://github.com/phusion/baseimage-docker)
-(which is extended by the `base` image) provides a VM-like container
-in which to run the Overleaf services. Baseimage uses the `runit` service
-manager to manage services, and init scripts from the `server-ce/runit`
-folder are added.
+### 2. Pull on the server
 
-## Authors
+```bash
+ssh root@23.95.182.35
+cd /opt/overleaf
+git pull origin ext-ce
+```
 
-[The Overleaf Team](https://www.overleaf.com/about)\
-[yu-i-i](https://github.com/yu-i-i/overleaf-cep) — CE extensions; references to adapted code are listed in [`CREDITS`](CREDITS.md)
+### 3. Rebuild the community image
 
-## License
+Use the cached base image (avoids a full multi-hour rebuild):
 
-The code in this repository is released under the GNU AFFERO GENERAL PUBLIC LICENSE, version 3. A copy can be found in the [`LICENSE`](LICENSE) file.
+```bash
+cd /opt/overleaf/server-ce
+make build-community OVERLEAF_BASE_TAG=sharelatex/sharelatex-base:ext-ce
+```
 
-Copyright (c) Overleaf, 2014-2026.\
-Copyright (c) yu-i-i, 2024-2026, for CE extensions.
+> To rebuild everything from scratch (e.g. after base system changes): `make all`
 
-Portions of the code are derived from other open-source projects; see [`CREDITS`](CREDITS.md).
+### 4. Retag and restart
+
+```bash
+docker tag sharelatex/sharelatex:ext-ce sharelatex/sharelatex:latest
+cd /opt/overleaf
+docker compose down && docker compose up -d
+```
+
+### Adding LaTeX packages
+
+To add a `.cls` or `.sty` file so all users can use it without uploading:
+
+```bash
+# Copy the file to the server
+scp yourfile.cls root@23.95.182.35:/tmp/
+
+# Place it in the TeX Live local tree
+docker exec sharelatex mkdir -p /usr/local/texlive/texmf-local/tex/latex/local
+docker cp /tmp/yourfile.cls sharelatex:/usr/local/texlive/texmf-local/tex/latex/local/
+
+# Regenerate the filename database (no restart needed)
+docker exec sharelatex mktexlsr
+```
+
+> Files added this way do not survive a container rebuild. To make them permanent, add them to the repo and copy them in the Dockerfile, or mount a host directory.
+
+---
+
+## Environment variables
+
+Configured in `/opt/overleaf/docker-compose.override.yml` on the server. Key variables:
+
+| Variable | Value |
+|---|---|
+| `OVERLEAF_SITE_URL` | `https://overleaf.team-anant.com` |
+| `OVERLEAF_APP_NAME` | `Team Anant Overleaf` |
+| `OVERLEAF_ADMIN_EMAIL` | `anant_coordinator@pilani.bits-pilani.ac.in` |
+| `OVERLEAF_EMAIL_SMTP_HOST` | `smtp.gmail.com` |
+
+---
+
+## Upstream
+
+- Base: [yu-i-i/overleaf-cep](https://github.com/yu-i-i/overleaf-cep)
+- Original: [overleaf/overleaf](https://github.com/overleaf/overleaf)
