@@ -1,4 +1,5 @@
 import { Project } from '../../../../../../types/project/api'
+import { OpenProjectButtonTooltip } from './action-buttons/open-project-button'
 import { DownloadProjectButtonTooltip } from './action-buttons/download-project-button'
 import { TransferProjectButtonTooltip } from './action-buttons/transfer-project-button'
 import { TrashProjectButtonTooltip } from './action-buttons/trash-project-button'
@@ -14,6 +15,7 @@ type ActionsCellProps = {
 export default function ActionsCell({ project }: ActionsCellProps) {
   return (
     <>
+      <OpenProjectButtonTooltip project={project} />
       <DownloadProjectButtonTooltip project={project} />
       <TransferProjectButtonTooltip project={project} />
       <TrashProjectButtonTooltip project={project} />
