@@ -21,9 +21,17 @@ Relevant files:
 - `services/web/modules/user-activate/app/src/UserActivateRouter.mjs` — added `GET /admin/register/users` and `DELETE /admin/register/user/:userId`
 - `services/web/modules/user-activate/frontend/js/components/user-activate-register.jsx` — added users table component
 
+### Admin — Project List (`/admin/project`)
+
+- **Open project** — added an open-in-new-tab button to each row so admins can open any project directly, not just ones currently being edited. Site admins have owner-level access to all projects via `AuthorizationManager`.
+
+Relevant files:
+- `services/web/modules/admin-tools/frontend/js/project-list/components/table/cells/action-buttons/open-project-button.tsx` — new button component
+- `services/web/modules/admin-tools/frontend/js/project-list/components/table/cells/actions-cell.tsx` — added button to actions cell
+
 ### TeX Live
 
-The community image installs `scheme-full` (complete TeX Live) and updates all packages at build time, so every LaTeX package on CTAN is available to all users out of the box.
+`scheme-full` (complete TeX Live, ~4900 packages) and `tlmgr update --all` are installed in the **base image** (`Dockerfile-base`), so every LaTeX package on CTAN is available to all users. Because it lives in the base layer, community rebuilds (`make build-community`) are fast — no TeX reinstall needed.
 
 ---
 
@@ -66,16 +74,21 @@ cd /opt/overleaf
 git pull origin ext-ce
 ```
 
-### 3. Rebuild the community image
+### 3. Rebuild the image
 
-Use the cached base image (avoids a full multi-hour rebuild):
+For most changes (JS/frontend/backend), rebuild only the community layer — fast (~15 min):
 
 ```bash
 cd /opt/overleaf/server-ce
 make build-community OVERLEAF_BASE_TAG=sharelatex/sharelatex-base:ext-ce
 ```
 
-> To rebuild everything from scratch (e.g. after base system changes): `make all`
+If you changed `Dockerfile-base` (e.g. system packages, TeX Live), do a full rebuild — slow (~2 hrs):
+
+```bash
+cd /opt/overleaf/server-ce
+make all
+```
 
 ### 4. Retag and restart
 
